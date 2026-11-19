@@ -1,0 +1,20 @@
+# Render Blueprint for the live demo. Secrets are entered in the Render dashboard, never committed:
+#   env vars  PI_BOOMI_BASE_URL, PI_BOOMI_USER, PI_BOOMI_TOKEN
+#   secret files  partner_private.pem, boomi_public.pem  (mounted at /etc/secrets)
+services:
+  - type: web
+    name: payment-intelligence-demo
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PI_BOOMI_BASE_URL
+        sync: false
+      - key: PI_BOOMI_USER
+        sync: false
+      - key: PI_BOOMI_TOKEN
+        sync: false
+      - key: RL_COSTLY_PER_10MIN
+        value: "10"
+      - key: RL_COSTLY_PER_DAY
+        value: "300"

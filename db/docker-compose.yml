@@ -1,0 +1,33 @@
+# Start:  docker compose --env-file ../.env -f payment-intelligence/db/docker-compose.yml up -d   (run from the workspace root)
+# --env-file is used only for ${VAR} interpolation below; no other .env values enter the container.
+services:
+  postgres:
+    image: postgres:16.4
+    container_name: payment-intelligence-db
+    restart: unless-stopped
+    # TLS on: traffic crosses the public ngrok edge. The Debian image ships a self-signed snakeoil cert;
+    # Boomi connects with sslmode=require (encrypted, not CA-verified). shortcut: swap in a real cert for production.
+    command: >
+      postgres -c ssl=on
+               -c ssl_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem
+               -c ssl_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
+               -c log_connections=on
+    environment:
+      POSTGRES_DB: payment_intelligence
+      POSTGRES_USER: ${POSTGRES_USER:-pi_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the workspace .env}
+      # Boomi reaches the DB over a public tunnel, so every connection must use password auth.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - pi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d payment_intelligence"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pi_pgdata:
