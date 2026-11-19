@@ -34,4 +34,11 @@ The SNAP transfer page needs `partner_private.pem` and `boomi_public.pem` in `se
 
 ## Hosted demo
 
-`Dockerfile` + `render.yaml` deploy the portal and proxy as one web service. Set the three `PI_BOOMI_*` variables and upload the two PEM files as Secret Files in the hosting dashboard. Costly routes (analyze, transfer, assistant) are rate-limited per IP and capped per day: see `RL_*` in `proxy/server.py`.
+The `Dockerfile` runs the portal and proxy as one web service.
+
+- **Hugging Face Spaces (Docker):** create a blank Docker Space, add these Space secrets: `PI_BOOMI_BASE_URL`, `PI_BOOMI_USER`, `PI_BOOMI_TOKEN`, `SNAP_PARTNER_PRIVATE_PEM`, `SNAP_BOOMI_PUBLIC_PEM`. The two PEM secrets take PEM text or base64 of it. Then run `HF_TOKEN=<write token> bash tools/deploy-hf-space.sh <user>/<space>`.
+- **Render:** `render.yaml` is a Blueprint. Set the three `PI_BOOMI_*` variables and upload the two PEM files as Secret Files.
+
+Costly routes (analyze, transfer, assistant) are rate-limited per IP and capped per day: see `RL_*` in `proxy/server.py`.
+
+Tests: `python3 tests/test_ratelimit.py`, `node tests/test_snap_keys.js`, and `bash tests/e2e.sh` (needs a running proxy).

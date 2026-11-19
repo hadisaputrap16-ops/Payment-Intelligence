@@ -4,7 +4,8 @@
 // Encrypts the body for Boomi (RSA-OAEP-SHA256 + AES-256-GCM), signs it (SHA256withRSA), posts it through the
 // local proxy, verifies Boomi's response signature and decrypts the response. Prints JSON:
 //   {http, responseCode, responseMessage, signatureValid, response}
-// Keys: secrets/snap/{partner_private,boomi_public}.pem  (override dir with SNAP_KEY_DIR).
+// Keys: env SNAP_PARTNER_PRIVATE_PEM / SNAP_BOOMI_PUBLIC_PEM (PEM text, "\n"-escaped PEM, or base64 of the PEM; used on
+// hosts that only offer secret env vars), else secrets/snap/{partner_private,boomi_public}.pem (override dir with SNAP_KEY_DIR).
 "use strict";
 const crypto = require("crypto");
 const fs = require("fs");
@@ -14,8 +15,13 @@ const DIR = process.env.SNAP_KEY_DIR || path.join(__dirname, "..", "secrets", "s
 const URL_ = process.env.SNAP_URL || `http://127.0.0.1:${process.env.PROXY_PORT || 8080}/api/snap/v1.0/transfer-intrabank`;
 const PATH = "/v1.0/transfer-intrabank";
 const PARTNER_ID = process.env.SNAP_PARTNER_ID || "PI-PARTNER-001";
-const partnerPriv = fs.readFileSync(path.join(DIR, "partner_private.pem"));
-const boomiPub = fs.readFileSync(path.join(DIR, "boomi_public.pem"));
+function pemFromEnv(v) {
+  if (!v) return null;
+  const s = v.trim().replace(/\\n/g, "\n");
+  return Buffer.from(s.includes("-----BEGIN") ? s : Buffer.from(s, "base64").toString("utf8"));
+}
+const partnerPriv = pemFromEnv(process.env.SNAP_PARTNER_PRIVATE_PEM) || fs.readFileSync(path.join(DIR, "partner_private.pem"));
+const boomiPub = pemFromEnv(process.env.SNAP_BOOMI_PUBLIC_PEM) || fs.readFileSync(path.join(DIR, "boomi_public.pem"));
 
 const sha256hex = (s) => crypto.createHash("sha256").update(s, "utf8").digest("hex");
 const toSign = (body, ts) => `POST:${PATH}:${sha256hex(body)}:${ts}`;

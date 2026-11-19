@@ -132,8 +132,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._json(400, b'{"ok":false,"error":"request body must be JSON"}')
         port = self.server.server_address[1]
         env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "SNAP_URL": f"http://127.0.0.1:{port}/api/snap/v1.0/transfer-intrabank"}
-        if os.environ.get("SNAP_KEY_DIR"):
-            env["SNAP_KEY_DIR"] = os.environ["SNAP_KEY_DIR"]
+        for k in ("SNAP_KEY_DIR", "SNAP_PARTNER_PRIVATE_PEM", "SNAP_BOOMI_PUBLIC_PEM"):
+            if os.environ.get(k):
+                env[k] = os.environ[k]
         try:
             r = subprocess.run(["node", str(SNAP_CLIENT), "--stdin", "--trace"], input=body, capture_output=True, timeout=200, env=env)
         except subprocess.TimeoutExpired:
